@@ -1,0 +1,230 @@
+<html>
+
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="./positions.js"></script>
+    <script src="./baoming.js"></script>
+    <style>
+        .button {
+            font-size: 15;
+        }
+
+        #list {
+            font-size: 14;
+        }
+
+        #count {
+            font-size: 14;
+        }
+
+        #output {
+            width: 100%;
+            height: 50px;
+        }
+
+        #input {
+            width: 100%;
+        }
+
+        #baomingput {
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <br />
+    <br />
+    <button class="button" onclick="posList(true)">可报岗位(省考)</button>
+    <button class="button" onclick="govPosList(false)">可报岗位(国考)</button>
+    <button class="button" onclick="cleanList()">清空列表</button>
+    <br />
+    <br />
+    <div>需要排除的关键字</div>
+    <textarea id="output" value="[]" multiple="multiple" type="text"></textarea>
+    <br />
+    <br />
+
+    <br />
+    <br />
+    <div>需要排除的关键字(报名人数表)</div>
+    <input id="baomingput" value="[]" type="text"></input>
+    <br />
+    <br />
+
+    <div>需要包含的关键字</div>
+    <input id="input" value="[]" type="text" />
+    <br />
+    <br />
+    <div>报名人数统计下载链接(省考): http://202.61.89.231/morenews-A65A221C4AE2A1C1-1</div>
+    <br />
+    <div>报名人数统计下载链接(国考): 无</div>
+    <br />
+
+
+    <div id="loading"></div>
+
+    <div id="count"></div>
+    <div id="list"></div>
+
+    <script>
+
+        var isCalculating = false //是否正在计算
+
+        function cleanList() {
+            innerHTML("", 0)
+        }
+        function govPosList() {
+            if (isCalculating) {
+                // showToast("正在计算...")
+                return;
+            }
+            isCalculating = true;
+            var outKeyArr = getKeyWords("output")
+            var inKeyArr = getKeyWords("input")
+
+            var array = getGovPosttionArray(outKeyArr, inKeyArr);
+            makeListStr(array)
+
+        }
+        function posList() {
+            if (isCalculating) {
+                // showToast("正在计算...")
+                return;
+            }
+            isCalculating = true;
+            var outKeyArr = getKeyWords("output")
+            var inKeyArr = getKeyWords("input")
+            var bmOutKeyArr = getKeyWords("baomingput")
+            var array = getPosttionArray(outKeyArr, inKeyArr)
+            console.log('array ===> === ',array)
+            var baoArr = provinceCountArray(bmOutKeyArr)
+            compareCount(array, baoArr, 8)
+        }
+
+        function getKeyWords(viewId) {
+            var input = document.getElementById(viewId).value
+            var array = input.split(",")
+            if (array.length == 1) {
+                if (array[0] == "") {
+                    return [];
+                }
+            }
+            return array
+        }
+
+        function compareCount(canArr, baoArr, codeLen) {
+            var myArr = [];
+            for (const i in baoArr) {
+                var info = baoArr[i];
+                var code = info.substring(0, codeLen);
+                for (const j in canArr) {
+                    var data = canArr[j];
+                    if (data.includes(code)) {
+                        myArr.push("报名人数情况====" + info + " =====岗位信息：" + data)
+                        break
+                    }
+                }
+            }
+            makeListStr(myArr)
+        }
+
+        function makeListStr(array) {
+            var divs = ""
+            for (const index in array) {
+                const element = array[index];
+                divs = divs + "<div>" + index.toString() + "------" + element + "</div>"
+                divs = divs + "<br />"
+            }
+            var count = array.length + "";
+            console.log("count == ", count)
+            innerHTML(divs, count)
+        }
+
+        function innerHTML(divs, cou) {
+            var div = document.getElementById("list")
+            var count = document.getElementById("count")
+            var cc = cou ? cou : "0"
+            count.innerHTML = "<br /><div>" + "共有" + cc + "条数据：" + "</div><br />";
+            div.innerHTML = divs
+
+
+            isCalculating = false // 绘制完成
+        }
+
+        function showToast(msg, duration) {
+            duration = isNaN(duration) ? 3000 : duration;
+            var m = document.createElement('div');
+            m.innerHTML = msg;
+            m.style.cssText = "width:60%; min-width:180px; background:#000; opacity:0.6; height:auto;min-height: 30px; color:#fff; line-height:30px; text-align:center; border-radius:4px; position:fixed; top:60%; left:20%; z-index:999999;";
+            document.body.appendChild(m);
+            setTimeout(function () {
+                var d = 0.5;
+                m.style.webkitTransition = '-webkit-transform ' + d + 's ease-in, opacity ' + d + 's ease-in';
+                m.style.opacity = '0';
+                setTimeout(function () { document.body.removeChild(m) }, d * 1000);
+            }, duration);
+        }
+
+
+        function initValue() {
+            var normalOut = [
+                "30周岁以下",
+                "30岁以下",
+                "仅限硕士研究生",
+                "研究生及以上",
+                "中共党员",
+                "英语四级",
+                "国家英语",
+                "三支一扶",
+                "大学生村官",
+                "教师特设岗",
+                "西部计划",
+                "限女",
+                " 女性",
+                "应届",
+                "5年",
+                "参公",
+                "参照公务员",
+                "水上工作",
+                "以上资格证书",
+                "长江海事局",
+                "水上现场工作较多",
+                "熟悉电力专业业务",
+                "较高的公文写作能力"
+            ];
+            var agree = [
+                // "与最高学历相对应的学位", 
+                // "学士",
+            ];
+            var resuOut = [];
+            resuOut.push(...normalOut);
+            resuOut.push(...agree);
+            var output = document.getElementById("output")
+            output.value = resuOut.toString();
+
+            var normalIn = [
+                // "电子商务"
+            ];
+            var resuIn = [];
+            resuIn.push(...normalIn);
+            var input = document.getElementById("input")
+            input.value = resuIn.toString();
+
+            var baomingOut = [
+                "30:1",
+                "50:1",
+                "100:1"
+            ];
+            var resuBaoming = [];
+            resuBaoming.push(...baomingOut);
+            var outputBaoming = document.getElementById("baomingput")
+            outputBaoming.value = resuBaoming.toString();
+        }
+        initValue()
+    </script>
+
+</body>
+
+</html>
