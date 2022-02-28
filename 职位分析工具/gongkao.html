@@ -30,6 +30,10 @@
         #baomingput {
             width: 100%;
         }
+
+        #allinput {
+            width: 100%;
+        }
     </style>
 </head>
 
@@ -38,16 +42,13 @@
 
     <br />
     <br />
-    <button class="button" onclick="posList(true)">可报岗位(省考)</button>
-    <button class="button" onclick="govPosList(false)">可报岗位(国考)</button>
+    <button class="button" onclick="shengkaoList(true)">可报岗位(省考)</button>
+    <button class="button" onclick="guokaoList(false)">可报岗位(国考)</button>
     <button class="button" onclick="cleanList()">清空列表</button>
     <br />
     <br />
     <div>需要排除的关键字</div>
     <textarea id="output" value="[]" multiple="multiple" type="text"></textarea>
-    <br />
-    <br />
-
     <br />
     <br />
     <div>需要排除的关键字(报名人数表)</div>
@@ -56,10 +57,16 @@
     <br />
 
     <div>需要包含的关键字</div>
+    <input id="allinput" value="[]" type="text" />
+    <br />
+    <br />
+
+    <div>专业关键字</div>
     <input id="input" value="[]" type="text" />
     <br />
     <br />
-    <div>报名人数统计下载链接(省考): http://202.61.89.231/morenews-A65A221C4AE2A1C1-1</div>
+
+    <div>报名人数统计下载链接(省考): </div>
     <br />
     <div>报名人数统计下载链接(国考): 无</div>
     <br />
@@ -79,33 +86,41 @@
         var isCalculating = false //是否正在计算
 
         function cleanList() {
-            innerHTML("", 0)
+            innerHTML("", -1)
         }
-        function govPosList() {
+        function guokaoList() {
             if (isCalculating) {
                 // showToast("正在计算...")
                 return;
             }
             isCalculating = true;
             var outKeyArr = getKeyWords("output")
-            var inKeyArr = getKeyWords("input")
+            var inKeyArr = getKeyWords("allinput")
+            var zhuanyeKeyArr = getKeyWords("input")
+            var array = getGovPosttionArray(outKeyArr, inKeyArr, zhuanyeKeyArr);
+            var myArr = [];
+            for (const key in array) {
+                const info = array[key];
+                var z = getZhuanYeFromInfo(info)
+                myArr.push(info)
+            }
 
-            var array = getGovPosttionArray(outKeyArr, inKeyArr);
-            makeListStr(array)
+            makeListStr(myArr)
 
         }
-        function posList() {
+        function shengkaoList() {
             if (isCalculating) {
                 // showToast("正在计算...")
                 return;
             }
             isCalculating = true;
             var outKeyArr = getKeyWords("output")
-            var inKeyArr = getKeyWords("input")
-            var bmOutKeyArr = getKeyWords("baomingput")
+            var inKeyArr = getKeyWords("allinput")
             var array = getPosttionArray(outKeyArr, inKeyArr)
-            console.log('array ===> === ',array)
+
+            var bmOutKeyArr = getKeyWords("baomingput")
             var baoArr = provinceCountArray(bmOutKeyArr)
+
             compareCount(array, baoArr, 8)
         }
 
@@ -133,17 +148,90 @@
                     }
                 }
             }
-            makeListStr(myArr)
+            if (baoArr.length == 0) {
+                makeListStr(canArr)
+            } else {
+                makeListStr(myArr)
+            }
+
+        }
+
+        function checkZhuanYe(info) {
+            var zhuanyeKeyArr = getKeyWords("input")
+
+            for (const key in zhuanyeKeyArr) {
+                if (Object.hasOwnProperty.call(zhuanyeKeyArr, key)) {
+                    const zhuanyeStr = zhuanyeKeyArr[key];
+                    if (info.includes(zhuanyeStr)) {
+                        return true;
+                    }
+                    
+                }
+            }
+
+            // 如果有专业限制，但是还没有返回true，则肯定不满足条件
+            if (zhuanyeKeyArr.length > 0) {
+                return false
+            }
+
+            // var z = getZhuanYeFromInfo(info)
+            // var str = z.replace(/^\s+|\s+$/g, "");
+            // var arr = str.split("、")
+
+
+
+            // if (arr.length > 4) {
+            //     return false
+            // }
+
+            // if (arr.includes("计算机类")) {
+            //     return false
+            // }
+
+            if (info.includes("不限")) {
+                return true
+            }
+            if (info.includes("无限制")) {
+                return true
+            }
+            if (info.includes("电子商务")) {
+                return true
+            }
+            if (info.includes("电子商务类")) {
+                return true
+            }
+            if (info.includes("管理类")) {
+                return true
+            }
+            if (info.includes("管理大类")) {
+                return true
+            }
+            if (info.includes("管理学大类")) {
+                return true
+            }
+            if (info.includes("管理学")) {
+                return true
+            }
+            if (info.includes("管理学类")) {
+                return true
+            }
+
+            return false
         }
 
         function makeListStr(array) {
             var divs = ""
+            var i = 0;
             for (const index in array) {
                 const element = array[index];
-                divs = divs + "<div>" + index.toString() + "------" + element + "</div>"
-                divs = divs + "<br />"
+                var zhuanyeOk = checkZhuanYe(element)
+                if (zhuanyeOk) {
+                    divs = divs + "<div>" + i.toString() + "------" + element + "</div>"
+                    divs = divs + "<br />"
+                    i = i + 1;
+                }
             }
-            var count = array.length + "";
+            var count = i + "";
             console.log("count == ", count)
             innerHTML(divs, count)
         }
@@ -151,7 +239,7 @@
         function innerHTML(divs, cou) {
             var div = document.getElementById("list")
             var count = document.getElementById("count")
-            var cc = cou ? cou : "0"
+            var cc = cou ? cou : "-1"
             count.innerHTML = "<br /><div>" + "共有" + cc + "条数据：" + "</div><br />";
             div.innerHTML = divs
 
@@ -176,33 +264,41 @@
 
         function initValue() {
             var normalOut = [
-                "30周岁以下",
-                "30岁以下",
-                "仅限硕士研究生",
-                "研究生及以上",
-                "中共党员",
-                "英语四级",
-                "国家英语",
-                "三支一扶",
-                "大学生村官",
-                "教师特设岗",
-                "西部计划",
-                "限女",
-                " 女性",
-                "应届",
-                "5年",
-                "参公",
-                "参照公务员",
-                "水上工作",
-                "以上资格证书",
-                "长江海事局",
-                "水上现场工作较多",
-                "熟悉电力专业业务",
-                "较高的公文写作能力"
-            ];
-            var agree = [
+                // "30周岁以下",
+                // "30岁以下",
+                // "仅限硕士研究生",
+                // "研究生及以上",
+                // "中共党员",
+                // "英语四级",
+                // "国家英语",
+                // "三支一扶",
+                // "大学生村官",
+                // "教师特设岗",
+                // "西部计划",
+                // "限女",
+                // " 女性",
+                // "女性",
+                // "应届",
+                // "男性",
+                // "甘孜州",
+                // "泸州市户口",
+                // "最低服务",
+                // "从业资格",
+                // "参公",
+                // "参照公务员",
+                // "水上工作",
+                // "以上资格证书",
+                // "长江海事局",
+                // "水上现场工作较多",
+                // "熟悉电力专业业务",
+                // "较高的公文写作能力",
                 // "与最高学历相对应的学位", 
                 // "学士",
+                // "学位"
+            ];
+            // 学位
+            var agree = [
+                
             ];
             var resuOut = [];
             resuOut.push(...normalOut);
@@ -210,11 +306,23 @@
             var output = document.getElementById("output")
             output.value = resuOut.toString();
 
+            // 需要包含的关键字
             var normalIn = [
-                // "电子商务"
+                // "出差",
+                // "长期",
+                // "男性"
             ];
             var resuIn = [];
             resuIn.push(...normalIn);
+            var allinput = document.getElementById("allinput")
+            allinput.value = resuIn.toString();
+
+            // 专业
+            var zhuanyeArr = [
+                // "电子商务",
+            ];
+            var resuIn = [];
+            resuIn.push(...zhuanyeArr);
             var input = document.getElementById("input")
             input.value = resuIn.toString();
 
